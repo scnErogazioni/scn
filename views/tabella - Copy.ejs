@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= titolo %></title>
+  <style>
+    table { border-collapse: collapse; width: 100%; margin-top: 16px;}
+    th, td { border: 1px solid #333; padding: 4px; }
+    th { background: #eee; cursor: pointer;}
+    body { font-family: sans-serif; margin: 24px;}
+    .filter-bar { margin-bottom: 16px; }
+    .filter-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px;}
+    fieldset { border: 1px solid #bbb; border-radius: 3px; display: inline-block; vertical-align: top; padding: 4px 8px 4px 8px; margin:0 8px 0 0;}
+    legend { font-size: 13px; margin-left: 4px;}
+    label { font-size: 14px;}
+    input[type="checkbox"] { width: 17px; height: 17px; margin-right: 4px; vertical-align: middle;}
+    .count-bar { font-size: 18px; margin-bottom: 6px; color: #23447e; font-weight: bold;}
+    .sum-bar { font-size: 18px; margin-bottom: 16px; color: #044f09; font-weight: bold;}
+    .arrow { font-size: 13px; }
+  </style>
+  <script>
+    function sortBy(field) {
+      const params = new URLSearchParams(window.location.search);
+      const direction = params.get('sortField') === field && params.get('sortDir') === 'asc' ? 'desc' : 'asc';
+      params.set('sortField', field);
+      params.set('sortDir', direction);
+      window.location.search = params.toString();
+    }
+  </script>
+</head>
+<body>
+  <h1><%= titolo %></h1>
+  <div class="filter-bar">
+    <form method="get" id="filterForm">
+
+      <!-- FILTRI ANNO -->
+      <div class="filter-row">
+        <label for="annoStart">Anno inizio:</label>
+        <select name="annoStart" id="annoStart">
+          <%
+            let selectedStart = query.annoStart || annoStartDefault || "";
+          %>
+          <% (anni && anni.length ? anni : []).forEach(function(anno) { %>
+            <option value="<%= anno %>" <%= selectedStart == anno ? 'selected' : '' %>><%= anno %></option>
+          <% }); %>
+        </select>
+        <label for="annoEnd">Anno fine:</label>
+        <select name="annoEnd" id="annoEnd">
+          <%
+            let selectedEnd = query.annoEnd || annoEndDefault || "";
+          %>
+          <% (anni && anni.length ? anni : []).forEach(function(anno) { %>
+            <option value="<%= anno %>" <%= selectedEnd == anno ? 'selected' : '' %>><%= anno %></option>
+          <% }); %>
+        </select>
+      </div>
+
+      <!-- FILTRO SOGGETTO -->
+      <div class="filter-row">
+        <label for="soggetto">Soggetto:</label>
+        <select name="soggetto" id="soggetto">
+          <option value="Tutti" <%= (!query.soggetto || query.soggetto === 'Tutti') ? 'selected' : '' %>>Tutti</option>
+          <% (soggetti||[]).forEach(function(sogg) { %>
+            <option value="<%= sogg %>" <%= query.soggetto == sogg ? 'selected' : '' %>><%= sogg %></option>
+          <% }); %>
+        </select>
+      </div>
+
+      <!-- RICERCA SOGGETTO PARZIALE -->
+      <div class="filter-row">
+        <label for="soggetto_parziale">Ricerca Soggetto:</label>
+        <input type="text" name="soggetto_parziale" id="soggetto_parziale" value="<%= query.soggetto_parziale || "" %>" placeholder="Parte del nome">
+        <button type="submit">Filtra</button>
+        <button type="button" onclick="window.location.href=window.location.pathname">Azzera</button>
+      </div>
+
+      <!-- CHECKBOX MULTIPLI -->
+      <div class="filter-row">
+        <% const filtri = ['Azienda','Politico','Taormina','Camera_Senato','ARS','FENAPI'];
+           filtri.forEach(function(campo) { 
+            let options = (filterOptions && filterOptions[campo]) ? filterOptions[campo] : [];
+            if (options.length) { %>
+              <fieldset>
+                <legend><%= campo %></legend>
+                <% options.forEach(function(val) { %>
+                  <label>
+                    <input type="checkbox"
+                      name="<%= campo %>"
+                      value="<%= val %>"
+                      <%= (Array.isArray(query[campo]) && query[campo].includes(val)) ||
+                            query[campo] === val ? "checked" : "" %> >
+                    <%= val %>
+                  </label><br>
+                <% }); %>
+              </fieldset>
+            <% } 
+         }); %>
+      </div>
+      <input type="hidden" name="sortField" value="<%= sortField || "" %>">
+      <input type="hidden" name="sortDir" value="<%= sortDir || "asc" %>">
+    </form>
+  </div>
+
+  <div class="count-bar">
+    Record filtrati: <%= dati.length %>
+  </div>
+  <% if (typeof sommaImporti !== 'undefined' && sommaImporti !== null) { %>
+    <div class="sum-bar">
+      Somma Importi: <%= sommaImporti.toLocaleString('it-IT', { minimumFractionDigits:2, maximumFractionDigits:2 }) %>
+    </div>
+  <% } %>
+
+  <table>
+    <tr>
+      <% if (dati.length > 0) {
+        Object.keys(dati[0]).forEach(function(chiave){ %>
+        <th onclick="sortBy('<%= chiave %>')" title="Ordina per <%= chiave %>">
+          <%= chiave %>
+          <% if (sortField === chiave) { %>
+            <span class="arrow"><%= sortDir === 'asc' ? '▲' : '▼' %></span>
+          <% } %>
+        </th>
+      <% }); } %>
+    </tr>
+    <% dati.forEach(function(riga){ %>
+      <tr>
+        <% Object.values(riga).forEach(function(valore){ %>
+          <td><%= valore %></td>
+        <% }); %>
+      </tr>
+    <% }); %>
+  </table>
+</body>
+</html>
