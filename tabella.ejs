@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Erogazioni a Sud Chiama Nord e Sicilia Vera</title>
+  <style>
+    table { border-collapse: collapse; width: 100%; margin-top: 16px;}
+    th, td { border: 1px solid #333; padding: 4px;}
+    th { background: #eee; cursor: pointer;}
+    body { font-family: sans-serif; margin: 24px;}
+    .filter-bar { margin-bottom: 16px;}
+    .filter-row { display: flex; align-items: center; gap: 18px; margin-bottom: 6px;}
+    label { font-size: 14px;}
+    .count-bar { font-size: 18px; margin-bottom: 6px; color: #23447e; font-weight: bold;}
+    .sum-bar { font-size: 18px; margin-bottom: 16px; color: #044f09; font-weight: bold;}
+    .arrow { font-size: 13px;}
+    .btn-filtra {
+      background-color: #0056b3;
+      color: white;
+      border: none;
+      padding: 6px 16px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-azzera {
+      background-color: #c10020;
+      color: white;
+      border: none;
+      padding: 6px 16px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .button-row { display: flex; gap: 18px; margin-top: 12px;}
+    .filtro-partito {
+      background: #ffcf8c;
+      border-radius: 7px;
+      padding: 4px 12px 4px 8px;
+      margin-right: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: bold;
+    }
+    .filtro-anno {
+      background: #c3fdb8;
+      border-radius: 7px;
+      padding: 4px 16px 4px 8px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      font-weight: bold;
+    }
+    .filtro-soggetto {
+      background: #c8eafe;
+      border-radius: 7px;
+      padding: 4px 20px 4px 8px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-weight: bold;
+    }
+    .filtro-gruppo-giallo1 {
+      background: #fff9cc;
+      border-radius: 7px;
+      padding: 10px 20px;
+      font-weight: bold;
+      margin-right: 24px;
+      min-width: 200px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .filtro-gruppo-giallo2 {
+      background: #fdf6c0;
+      border-radius: 7px;
+      padding: 10px 20px;
+      font-weight: bold;
+      margin-right: 24px;
+      min-width: 200px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .filtro-gruppo-giallo3 {
+      background: #faedc7;
+      border-radius: 7px;
+      padding: 10px 20px;
+      font-weight: bold;
+      min-width: 200px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .filtro-gruppo-arancio1 {
+      background: #ffe6c0;
+      border-radius: 7px;
+      padding: 10px 20px;
+      font-weight: bold;
+      margin-right: 24px;
+      min-width: 200px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .filtro-gruppo-arancio2 {
+      background: #ffedcc;
+      border-radius: 7px;
+      padding: 10px 20px;
+      font-weight: bold;
+      min-width: 200px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .filtro-gruppo-arancio-s1 {
+      background: #ffd39b;
+      border-radius: 7px;
+      padding: 10px 20px;
+      font-weight: bold;
+      margin-right: 24px;
+      min-width: 200px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .filtro-gruppo-arancio-s2 {
+      background: #ffcd71;
+      border-radius: 7px;
+      padding: 10px 20px;
+      font-weight: bold;
+      margin-right: 24px;
+      min-width: 200px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .filtro-gruppo-arancio-s3 {
+      background: #ffb347;
+      border-radius: 7px;
+      padding: 10px 20px;
+      font-weight: bold;
+      min-width: 200px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+  </style>
+  <script>
+    function sortBy(field) {
+      const params = new URLSearchParams(window.location.search);
+      const direction = params.get('sortField') === field && params.get('sortDir') === 'asc' ? 'desc' : 'asc';
+      params.set('sortField', field);
+      params.set('sortDir', direction);
+      window.location.search = params.toString();
+    }
+    function azzeraForm() {
+      window.location.href = window.location.pathname;
+    }
+  </script>
+</head>
+<body>
+  <!-- INTESTAZIONE SU TRE RIGHE -->
+  <div style="font-size:23px; font-weight:bold; color:#23447e; margin-bottom:2px;">
+    Erogazioni a Sud Chiama Nord e Sicilia Vera
+  </div>
+  <div style="font-size:18px; font-weight:bold; color:#333; margin-bottom:2px;">
+    Elenchi tratti dal sito del Parlamento Italiano
+  </div>
+  <div style="font-size:17px; color:#23447e; margin-bottom:12px;">
+    <a href="https://parlamento18.camera.it/199" target="_blank" style="color:#23447e; text-decoration:underline;">
+      https://parlamento18.camera.it/199
+    </a>
+  </div>
+  <hr style="margin-bottom:20px;">
+  <div class="filter-bar">
+    <form method="get">
+      <!-- RIGA 1: Partito, anno inizio/fine -->
+      <div class="filter-row">
+        <span class="filtro-partito">
+          <label for="partito">Partito:</label>
+          <% (partiti||[]).forEach(function(par) { %>
+            <label>
+              <input type="checkbox" name="partito" value="<%= par %>"
+                <%= (Array.isArray(query.partito) && query.partito.includes(par)) || query.partito === par ? "checked" : "" %> >
+              <%= par %>
+            </label>
+          <% }); %>
+        </span>
+        <span class="filtro-anno">
+          <label for="annoStart">Anno inizio:</label>
+          <select name="annoStart" id="annoStart">
+            <% let selectedStart = query.annoStart || annoStartDefault || ""; %>
+            <% (anni && anni.length ? anni : []).forEach(function(anno) { %>
+              <option value="<%= anno %>" <%= selectedStart == anno ? 'selected' : '' %>><%= anno %></option>
+            <% }); %>
+          </select>
+          <label for="annoEnd">Anno fine:</label>
+          <select name="annoEnd" id="annoEnd">
+            <% let selectedEnd = query.annoEnd || annoEndDefault || ""; %>
+            <% (anni && anni.length ? anni : []).forEach(function(anno) { %>
+              <option value="<%= anno %>" <%= selectedEnd == anno ? 'selected' : '' %>><%= anno %></option>
+            <% }); %>
+          </select>
+        </span>
+      </div>
+      <!-- RIGA 2: Soggetto, ricerca soggetto -->
+      <div class="filter-row">
+        <span class="filtro-soggetto">
+          <label for="soggetto">Soggetto:</label>
+          <select name="soggetto" id="soggetto">
+            <option value="Tutti" <%= (!query.soggetto || query.soggetto === 'Tutti') ? 'selected' : '' %>>Tutti</option>
+            <% (soggetti||[]).forEach(function(sogg) { %>
+              <option value="<%= sogg %>" <%= query.soggetto == sogg ? 'selected' : '' %>><%= sogg %></option>
+            <% }); %>
+          </select>
+          <label for="soggetto_parziale">Ricerca Soggetto:</label>
+          <input type="text" name="soggetto_parziale" id="soggetto_parziale" value="<%= query.soggetto_parziale || "" %>" placeholder="Parte del nome">
+        </span>
+      </div>
+      <!-- RIGA 3: Politici, Taormina, Aziende (ognuno nel SUO colore giallo)-->
+      <div class="filter-row">
+        <% if ((gruppoOptions["G_Politici"]||[]).length) { %>
+          <span class="filtro-gruppo-giallo1">
+            <label style="min-width:90px;">G_Politici:</label>
+            <% 
+              var valsGPolitici = (gruppoOptions["G_Politici"]||[]).slice().sort(function(a, b) {
+                return (a === "FALSE" ? -1 : (a === "TRUE" ? 1 : 0));
+              });
+              valsGPolitici.forEach(function(val) { 
+            %>
+              <label>
+                <input type="checkbox" name="G_Politici" value="<%= val %>"
+                  <%= (Array.isArray(query["G_Politici"]) && query["G_Politici"].includes(val)) || query["G_Politici"] === val ? "checked" : "" %> >
+                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
+              </label>
+            <% }); %>
+          </span>
+        <% } %>
+        <% if ((gruppoOptions["G_Taormina"]||[]).length) { %>
+          <span class="filtro-gruppo-giallo2">
+            <label style="min-width:90px;">G_Taormina:</label>
+            <% (gruppoOptions["G_Taormina"]||[]).forEach(function(val) { %>
+              <label>
+                <input type="checkbox" name="G_Taormina" value="<%= val %>"
+                  <%= (Array.isArray(query["G_Taormina"]) && query["G_Taormina"].includes(val)) || query["G_Taormina"] === val ? "checked" : "" %> >
+                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
+              </label>
+            <% }); %>
+          </span>
+        <% } %>
+        <% if ((gruppoOptions["G_Aziende"]||[]).length) { %>
+          <span class="filtro-gruppo-giallo3">
+            <label style="min-width:90px;">G_Aziende:</label>
+            <% (gruppoOptions["G_Aziende"]||[]).forEach(function(val) { %>
+              <label>
+                <input type="checkbox" name="G_Aziende" value="<%= val %>"
+                  <%= (Array.isArray(query["G_Aziende"]) && query["G_Aziende"].includes(val)) || query["G_Aziende"] === val ? "checked" : "" %> >
+                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
+              </label>
+            <% }); %>
+          </span>
+        <% } %>
+      </div>
+      <!-- RIGA 4: FENAPI, EspTitGrat in arancio chiaro -->
+      <div class="filter-row">
+        <% if ((gruppoOptions["G_FENAPI"]||[]).length) { %>
+          <span class="filtro-gruppo-arancio1">
+            <label style="min-width:110px;">G_FENAPI:</label>
+            <% (gruppoOptions["G_FENAPI"]||[]).forEach(function(val) { %>
+              <label>
+                <input type="checkbox" name="G_FENAPI" value="<%= val %>"
+                  <%= (Array.isArray(query["G_FENAPI"]) && query["G_FENAPI"].includes(val)) || query["G_FENAPI"] === val ? "checked" : "" %> >
+                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
+              </label>
+            <% }); %>
+          </span>
+        <% } %>
+        <% if ((gruppoOptions["G_EspTitGrat"]||[]).length) { %>
+          <span class="filtro-gruppo-arancio2">
+            <label style="min-width:110px;">G_EspTitGrat:</label>
+            <% (gruppoOptions["G_EspTitGrat"]||[]).forEach(function(val) { %>
+              <label>
+                <input type="checkbox" name="G_EspTitGrat" value="<%= val %>"
+                  <%= (Array.isArray(query["G_EspTitGrat"]) && query["G_EspTitGrat"].includes(val)) || query["G_EspTitGrat"] === val ? "checked" : "" %> >
+                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
+              </label>
+            <% }); %>
+          </span>
+        <% } %>
+      </div>
+      <!-- RIGA 5: Messina, REG, NAZ in arancio scuro -->
+      <div class="filter-row">
+        <% if ((gruppoOptions["G_Messina"]||[]).length) { %>
+          <span class="filtro-gruppo-arancio-s1">
+            <label style="min-width:90px;">G_Messina:</label>
+            <% (gruppoOptions["G_Messina"]||[]).forEach(function(val) { %>
+              <label>
+                <input type="checkbox" name="G_Messina" value="<%= val %>"
+                  <%= (Array.isArray(query["G_Messina"]) && query["G_Messina"].includes(val)) || query["G_Messina"] === val ? "checked" : "" %> >
+                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
+              </label>
+            <% }); %>
+          </span>
+        <% } %>
+        <% if ((gruppoOptions["G_REG"]||[]).length) { %>
+          <span class="filtro-gruppo-arancio-s2">
+            <label style="min-width:90px;">G_REG:</label>
+            <% (gruppoOptions["G_REG"]||[]).forEach(function(val) { %>
+              <label>
+                <input type="checkbox" name="G_REG" value="<%= val %>"
+                  <%= (Array.isArray(query["G_REG"]) && query["G_REG"].includes(val)) || query["G_REG"] === val ? "checked" : "" %> >
+                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
+              </label>
+            <% }); %>
+          </span>
+        <% } %>
+        <% if ((gruppoOptions["G_NAZ"]||[]).length) { %>
+          <span class="filtro-gruppo-arancio-s3">
+            <label style="min-width:90px;">G_NAZ:</label>
+            <% (gruppoOptions["G_NAZ"]||[]).forEach(function(val) { %>
+              <label>
+                <input type="checkbox" name="G_NAZ" value="<%= val %>"
+                  <%= (Array.isArray(query["G_NAZ"]) && query["G_NAZ"].includes(val)) || query["G_NAZ"] === val ? "checked" : "" %> >
+                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
+              </label>
+            <% }); %>
+          </span>
+        <% } %>
+      </div>
+      <div class="button-row">
+        <button type="submit" class="btn-filtra">FILTRA</button>
+        <button type="button" class="btn-azzera" onclick="azzeraForm()">AZZERA</button>
+      </div>
+      <input type="hidden" name="sortField" value="<%= sortField || "" %>">
+      <input type="hidden" name="sortDir" value="<%= sortDir || "asc" %>">
+    </form>
+  </div>
+  <div class="count-bar">
+    Record filtrati: <%= dati.length %>
+  </div>
+  <% if (typeof sommaImporti !== 'undefined' && sommaImporti !== null) { %>
+    <div class="sum-bar">
+      Somma Importi: <%= sommaImporti.toLocaleString('it-IT', { minimumFractionDigits:2, maximumFractionDigits:2 }) %>
+    </div>
+  <% } %>
+  <table>
+    <tr>
+      <% if (dati.length > 0) {
+        Object.keys(dati[0]).forEach(function(chiave){ %>
+        <th onclick="sortBy('<%= chiave %>')" title="Ordina per <%= chiave %>">
+          <%= chiave %>
+          <% if (sortField === chiave) { %>
+            <span class="arrow"><%= sortDir === 'asc' ? '▲' : '▼' %></span>
+          <% } %>
+        </th>
+      <% }); } %>
+    </tr>
+    <% dati.forEach(function(riga){ %>
+      <tr>
+        <% Object.values(riga).forEach(function(valore){ %>
+          <td><%= valore %></td>
+        <% }); %>
+      </tr>
+    <% }); %>
+  </table>
+</body>
+</html>
