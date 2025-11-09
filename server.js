@@ -6,15 +6,16 @@ const port = 3000;
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 
-let erogazioni = [];
-let tipologia = [];
-let erogazioniTipologia = [];
+let erogazioniSoggettiGruppi = [];
 
-// Utility base
 function readXLSX(filename) {
   const workbook = xlsx.readFile(filename);
   const sheetName = workbook.SheetNames[0];
   return xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
+}
+function mapGroupBool(val) {
+  if (val == null) return null;
+  return String(val).trim().toUpperCase();
 }
 function formattaData(data) {
   if (!data) return "";
@@ -51,19 +52,23 @@ function soggettiDaArray(arr) {
   return Array.from(new Set(arr.map(r => r.Soggetto).filter(x => typeof x === 'string' && x.length))).sort();
 }
 function uniqueColValues(arr, col) {
-  return Array.from(new Set(arr.map(r => r[col]).filter(v => typeof v === 'string' && v.trim().length))).sort();
+  return Array.from(new Set(arr.map(r => mapGroupBool(r[col])).filter(v => typeof v === 'string' && v.trim().length)));
 }
 function arrSelected(param) {
   if (!param) return [];
   if (Array.isArray(param)) return param;
   return [param];
 }
+function calcSommaImporti(arr) {
+  return arr.reduce((acc, r) => {
+    let v = r.Importo;
+    if (typeof v === 'string') v = v.replace(',', '.');
+    let num = parseFloat(v);
+    return acc + (isNaN(num) ? 0 : num);
+  }, 0);
+}
 function parseDataForSort(str) {
   if (!str) return 0;
-  if (!isNaN(str)) {
-    const epoch = new Date(1899, 11, 30);
-    return new Date(epoch.getTime() + Number(str) * 86400000).getTime();
-  }
   let p = String(str).split(/[-\/]/);
   if (p.length === 3) {
     if (p[0].length === 4) return new Date(p[0], p[1] - 1, p[2]).getTime();
@@ -71,172 +76,105 @@ function parseDataForSort(str) {
   }
   return Date.parse(str);
 }
-function calcSommaImporti(ris) {
-  return ris.reduce((acc, r) => {
-    let v = r.Importo || r.importo || r.IMPORTO || 0;
-    if (typeof v === 'string') v = v.replace(',', '.');
-    const n = parseFloat(v);
-    return acc + (isNaN(n) ? 0 : n);
-  }, 0);
-}
-// Per SI/NO
-function prettifyBool(val) {
-  if (val === true || val === "true" || val === 1 || val === "1") return "SI";
-  if (val === false || val === "false" || val === 0 || val === "0") return "NO";
-  if (val === '' || val === null || val === undefined) return "";
-  return val;
-}
 
 function initData() {
-  erogazioni = readXLSX('SCN_Erogazioni.xlsx');
-  tipologia = readXLSX('TipologiaSoggetti.xlsx');
-  erogazioniTipologia = readXLSX('SCN_Erogazioni_Tipologia.xlsx');
+  erogazioniSoggettiGruppi = readXLSX('SV_SCN_EROGAZIONI_SOGGETTI_GRUPPI_Importi.xlsx');
 }
 
 app.get('/', (req, res) => { res.send('Server SCN attivo'); });
 
-// --- ERGAZIONI PRINCIPALE ---
-app.get('/tabella/erogazioni', (req, res) => {
-  let risultati = erogazioni.map(riga => ({
-    ...riga,
+app.get('/tabella/erogazioni_soggetti_gruppi', (req, res) => {
+  let gruppi = [
+    "G_Aziende", "G_FENAPI", "G_Politici", "G_Taormina",
+    "G_Messina", "G_REG", "G_NAZ", "G_EspTitGrat"
+  ];
+
+  let dati = erogazioniSoggettiGruppi.map(riga => ({
+    Anno: riga.Anno,
+    Soggetto: riga.Soggetto,
+    Importo: riga.Importo,
+    Partito: riga.Partito,
     DataErogazione: formattaData(riga.DataErogazione),
-    DataTrasmissione: formattaData(riga.DataTrasmissione)
+    DataTrasmissione: formattaData(riga.DataTrasmissione),
+    G_Aziende: mapGroupBool(riga.G_Aziende),
+    G_FENAPI: mapGroupBool(riga.G_FENAPI),
+    G_Politici: mapGroupBool(riga.G_Politici),
+    G_Taormina: mapGroupBool(riga.G_Taormina),
+    G_Messina: mapGroupBool(riga.G_Messina),
+    G_REG: mapGroupBool(riga.G_REG),
+    G_NAZ: mapGroupBool(riga.G_NAZ),
+    G_EspTitGrat: mapGroupBool(riga.G_EspTitGrat)
   }));
-  let anniLista = anniDaArray(risultati, "DataErogazione");
+
+  let anniLista = anniDaArray(dati, "DataErogazione");
   let annoStartDefault = anniLista.length ? anniLista[0] : "";
   let annoEndDefault = anniLista.length ? anniLista[anniLista.length - 1] : "";
-  let soggettiLista = soggettiDaArray(risultati);
+  let soggettiLista = soggettiDaArray(dati);
+  let partitiLista = uniqueColValues(dati, "Partito");
+
+  let gruppoOptions = {};
+  gruppi.forEach(g => {
+    gruppoOptions[g] = uniqueColValues(dati, g);
+  });
 
   const annoStart = req.query.annoStart ? parseInt(req.query.annoStart) : annoStartDefault;
-  const annoEnd   = req.query.annoEnd ? parseInt(req.query.annoEnd) : annoEndDefault;
+  const annoEnd = req.query.annoEnd ? parseInt(req.query.annoEnd) : annoEndDefault;
 
-  let risultatoFiltrato = risultati.filter(riga => {
+  let datiFiltrati = dati.filter(riga => {
     let anno = estraiAnno(riga.DataErogazione);
-    if (annoStart && annoEnd && anno) return anno >= annoStart && anno <= annoEnd;
-    return true;
+    let checkAnno = (!annoStart || !annoEnd || !anno) ? true : (anno >= annoStart && anno <= annoEnd);
+    let checkSogg = req.query.soggetto && req.query.soggetto !== 'Tutti' ? riga.Soggetto === req.query.soggetto : true;
+    let checkPartito = req.query.partito && arrSelected(req.query.partito).length > 0
+      ? arrSelected(req.query.partito).includes(riga.Partito)
+      : true;
+    let checkGruppi = gruppi.every(gr => {
+      if (req.query[gr] && arrSelected(req.query[gr]).length > 0) {
+        return arrSelected(req.query[gr]).includes(riga[gr]);
+      }
+      return true;
+    });
+    return checkAnno && checkSogg && checkPartito && checkGruppi;
   });
-  if (req.query.soggetto && req.query.soggetto !== 'Tutti') {
-    risultatoFiltrato = risultatoFiltrato.filter(r => r.Soggetto === req.query.soggetto);
-  }
+
   if (req.query.soggetto_parziale && req.query.soggetto_parziale.trim() !== "") {
     let part = req.query.soggetto_parziale.trim().toLowerCase();
-    risultatoFiltrato = risultatoFiltrato.filter(r => r.Soggetto && r.Soggetto.toLowerCase().includes(part));
+    datiFiltrati = datiFiltrati.filter(r => r.Soggetto && r.Soggetto.toLowerCase().includes(part));
   }
+
   const sortField = req.query.sortField || null;
   const sortDir = req.query.sortDir || 'asc';
   if (sortField) {
-    risultatoFiltrato.sort((a, b) => {
-      let va = a[sortField];
-      let vb = b[sortField];
-      let cmp = 0;
-      if (['DataErogazione', 'DataTrasmissione', 'DataInizio', 'DataFine'].includes(sortField)) {
+    datiFiltrati.sort((a, b) => {
+      let va = a[sortField], vb = b[sortField], cmp = 0;
+      if (sortField === 'DataErogazione' || sortField === 'DataTrasmissione') {
         cmp = parseDataForSort(va) - parseDataForSort(vb);
-      } else {
+      } else if (sortField === 'Importo') {
         let asnum = Number(va), bsnum = Number(vb);
         cmp = (!isNaN(asnum) && !isNaN(bsnum)) ? (asnum - bsnum) : String(va).localeCompare(String(vb), 'it', { numeric: true });
+      } else {
+        cmp = String(va).localeCompare(String(vb), 'it', { numeric: true });
       }
       return sortDir === 'asc' ? cmp : -cmp;
     });
   }
-  const sommaImporti = calcSommaImporti(risultatoFiltrato);
-  res.render('tabella', {
-    dati: risultatoFiltrato, titolo: 'SCN_Erogazioni', query: req.query,
-    anni: anniLista, annoStartDefault, annoEndDefault, soggetti: soggettiLista,
-    sommaImporti, sortField, sortDir, filterOptions: {}
-  });
-});
 
-// --- TIPOLOGIA ---
-app.get('/tabella/tipologia', (req, res) => {
-  res.render('tabella', {
-    dati: tipologia, titolo: 'TipologiaSoggetti', query: req.query,
-    anni: [], annoStartDefault: null, annoEndDefault: null,
-    soggetti: [], sommaImporti: null, sortField: null, sortDir: null, filterOptions: {}
-  });
-});
-
-// --- EROGAZIONI_TIPOLOGIA CON CHECKBOX MULTIPLI e SI/NO ---
-app.get('/tabella/erogazioni_tipologia', (req, res) => {
-  let risultati = erogazioniTipologia.map(riga => ({
-    Soggetto: riga.Soggetto,
-    Importo: riga.Importo || riga.importo || riga.IMPORTO,
-    DataErogazione: formattaData(riga.DataErogazione),
-    AnnoErogazione: estraiAnno(formattaData(riga.DataErogazione)),
-    Azienda: prettifyBool(riga.Azienda),
-    Politico: prettifyBool(riga.Politico),
-    Taormina: prettifyBool(riga.Taormina),
-    Camera_Senato: prettifyBool(riga.Camera_Senato),
-    ARS: prettifyBool(riga.ARS),
-    FENAPI: prettifyBool(riga.FENAPI)
-  }));
-
-  let anniLista = anniDaArray(risultati, "DataErogazione");
-  let annoStartDefault = anniLista.length ? anniLista[0] : "";
-  let annoEndDefault = anniLista.length ? anniLista[anniLista.length - 1] : "";
-  let soggettiLista = soggettiDaArray(risultati);
-
-  let filterOptions = {
-    Azienda: uniqueColValues(risultati, "Azienda"),
-    Politico: uniqueColValues(risultati, "Politico"),
-    Taormina: uniqueColValues(risultati, "Taormina"),
-    Camera_Senato: uniqueColValues(risultati, "Camera_Senato"),
-    ARS: uniqueColValues(risultati, "ARS"),
-    FENAPI: uniqueColValues(risultati, "FENAPI")
-  };
-
-  const annoStart = req.query.annoStart ? parseInt(req.query.annoStart) : annoStartDefault;
-  const annoEnd = req.query.annoEnd ? parseInt(req.query.annoEnd) : annoEndDefault;
-  let risultatiFiltrati = risultati.filter(riga => {
-    let anno = riga.AnnoErogazione;
-    let checkAnno = (!annoStart || !annoEnd || !anno) ? true : (anno >= annoStart && anno <= annoEnd);
-    let checkSogg = req.query.soggetto && req.query.soggetto !== 'Tutti' ? riga.Soggetto === req.query.soggetto : true;
-    let checkAzienda = req.query.Azienda ? arrSelected(req.query.Azienda).includes(riga.Azienda) : true;
-    let checkPolitico = req.query.Politico ? arrSelected(req.query.Politico).includes(riga.Politico) : true;
-    let checkTaormina = req.query.Taormina ? arrSelected(req.query.Taormina).includes(riga.Taormina) : true;
-    let checkCameraSenato = req.query.Camera_Senato ? arrSelected(req.query.Camera_Senato).includes(riga.Camera_Senato) : true;
-    let checkARS = req.query.ARS ? arrSelected(req.query.ARS).includes(riga.ARS) : true;
-    let checkFENAPI = req.query.FENAPI ? arrSelected(req.query.FENAPI).includes(riga.FENAPI) : true;
-    return checkAnno && checkSogg && checkAzienda && checkPolitico && checkTaormina && checkCameraSenato && checkARS && checkFENAPI;
-  });
-  if (req.query.soggetto_parziale && req.query.soggetto_parziale.trim() !== "") {
-    let part = req.query.soggetto_parziale.trim().toLowerCase();
-    risultatiFiltrati = risultatiFiltrati.filter(r => r.Soggetto && r.Soggetto.toLowerCase().includes(part));
-  }
-  const sortField = req.query.sortField || null;
-  const sortDir = req.query.sortDir || 'asc';
-  if (sortField) {
-    risultatiFiltrati.sort((a, b) => {
-      let va = a[sortField];
-      let vb = b[sortField];
-      let cmp = 0;
-      if (sortField === 'DataErogazione') cmp = parseDataForSort(va) - parseDataForSort(vb);
-      else if (sortField === 'Importo') {
-        let asnum = Number(va), bsnum = Number(vb);
-        cmp = (!isNaN(asnum) && !isNaN(bsnum)) ? (asnum - bsnum) : String(va).localeCompare(String(vb), 'it', { numeric: true });
-      } else if (sortField === 'AnnoErogazione') cmp = Number(va) - Number(vb);
-      else cmp = String(va).localeCompare(String(vb), 'it', { numeric: true });
-      return sortDir === 'asc' ? cmp : -cmp;
-    });
-  }
-  const sommaImporti = risultatiFiltrati.reduce((acc, r) => {
-    let valore = r.Importo || 0;
-    if (typeof valore === 'string') valore = valore.replace(',', '.');
-    const num = parseFloat(valore);
-    return acc + (isNaN(num) ? 0 : num);
-  }, 0);
+  const sommaImporti = calcSommaImporti(datiFiltrati);
 
   res.render('tabella', {
-    dati: risultatiFiltrati,
-    titolo: 'SCN - Erogazioni',
+    dati: datiFiltrati,
+    titolo: 'SV_SCN_EROGAZIONI_SOGGETTI_GRUPPI_Importi',
     query: req.query,
     anni: anniLista,
     annoStartDefault,
     annoEndDefault,
     soggetti: soggettiLista,
+    partiti: partitiLista,
+    gruppi: gruppi,
+    gruppoOptions: gruppoOptions,
     sommaImporti,
     sortField,
     sortDir,
-    filterOptions
+    filterOptions: {}
   });
 });
 
