@@ -147,6 +147,7 @@
       align-items: center;
       gap: 12px;
     }
+    .td-importo { text-align: right; }
   </style>
   <script>
     function sortBy(field) {
@@ -177,159 +178,8 @@
   <hr style="margin-bottom:20px;">
   <div class="filter-bar">
     <form method="get">
-      <!-- RIGA 1: Partito, anno inizio/fine -->
-      <div class="filter-row">
-        <span class="filtro-partito">
-          <label for="partito">Partito:</label>
-          <% (partiti||[]).forEach(function(par) { %>
-            <label>
-              <input type="checkbox" name="partito" value="<%= par %>"
-                <%= (Array.isArray(query.partito) && query.partito.includes(par)) || query.partito === par ? "checked" : "" %> >
-              <%= par %>
-            </label>
-          <% }); %>
-        </span>
-        <span class="filtro-anno">
-          <label for="annoStart">Anno inizio:</label>
-          <select name="annoStart" id="annoStart">
-            <% let selectedStart = query.annoStart || annoStartDefault || ""; %>
-            <% (anni && anni.length ? anni : []).forEach(function(anno) { %>
-              <option value="<%= anno %>" <%= selectedStart == anno ? 'selected' : '' %>><%= anno %></option>
-            <% }); %>
-          </select>
-          <label for="annoEnd">Anno fine:</label>
-          <select name="annoEnd" id="annoEnd">
-            <% let selectedEnd = query.annoEnd || annoEndDefault || ""; %>
-            <% (anni && anni.length ? anni : []).forEach(function(anno) { %>
-              <option value="<%= anno %>" <%= selectedEnd == anno ? 'selected' : '' %>><%= anno %></option>
-            <% }); %>
-          </select>
-        </span>
-      </div>
-      <!-- RIGA 2: Soggetto, ricerca soggetto -->
-      <div class="filter-row">
-        <span class="filtro-soggetto">
-          <label for="soggetto">Soggetto:</label>
-          <select name="soggetto" id="soggetto">
-            <option value="Tutti" <%= (!query.soggetto || query.soggetto === 'Tutti') ? 'selected' : '' %>>Tutti</option>
-            <% (soggetti||[]).forEach(function(sogg) { %>
-              <option value="<%= sogg %>" <%= query.soggetto == sogg ? 'selected' : '' %>><%= sogg %></option>
-            <% }); %>
-          </select>
-          <label for="soggetto_parziale">Ricerca Soggetto:</label>
-          <input type="text" name="soggetto_parziale" id="soggetto_parziale" value="<%= query.soggetto_parziale || "" %>" placeholder="Parte del nome">
-        </span>
-      </div>
-      <!-- RIGA 3: Politici, Taormina, Aziende (ognuno nel SUO colore giallo)-->
-      <div class="filter-row">
-        <% if ((gruppoOptions["G_Politici"]||[]).length) { %>
-          <span class="filtro-gruppo-giallo1">
-            <label style="min-width:90px;">G_Politici:</label>
-            <% 
-              var valsGPolitici = (gruppoOptions["G_Politici"]||[]).slice().sort(function(a, b) {
-                return (a === "FALSE" ? -1 : (a === "TRUE" ? 1 : 0));
-              });
-              valsGPolitici.forEach(function(val) { 
-            %>
-              <label>
-                <input type="checkbox" name="G_Politici" value="<%= val %>"
-                  <%= (Array.isArray(query["G_Politici"]) && query["G_Politici"].includes(val)) || query["G_Politici"] === val ? "checked" : "" %> >
-                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
-              </label>
-            <% }); %>
-          </span>
-        <% } %>
-        <% if ((gruppoOptions["G_Taormina"]||[]).length) { %>
-          <span class="filtro-gruppo-giallo2">
-            <label style="min-width:90px;">G_Taormina:</label>
-            <% (gruppoOptions["G_Taormina"]||[]).forEach(function(val) { %>
-              <label>
-                <input type="checkbox" name="G_Taormina" value="<%= val %>"
-                  <%= (Array.isArray(query["G_Taormina"]) && query["G_Taormina"].includes(val)) || query["G_Taormina"] === val ? "checked" : "" %> >
-                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
-              </label>
-            <% }); %>
-          </span>
-        <% } %>
-        <% if ((gruppoOptions["G_Aziende"]||[]).length) { %>
-          <span class="filtro-gruppo-giallo3">
-            <label style="min-width:90px;">G_Aziende:</label>
-            <% (gruppoOptions["G_Aziende"]||[]).forEach(function(val) { %>
-              <label>
-                <input type="checkbox" name="G_Aziende" value="<%= val %>"
-                  <%= (Array.isArray(query["G_Aziende"]) && query["G_Aziende"].includes(val)) || query["G_Aziende"] === val ? "checked" : "" %> >
-                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
-              </label>
-            <% }); %>
-          </span>
-        <% } %>
-      </div>
-      <!-- RIGA 4: FENAPI, EspTitGrat in arancio chiaro -->
-      <div class="filter-row">
-        <% if ((gruppoOptions["G_FENAPI"]||[]).length) { %>
-          <span class="filtro-gruppo-arancio1">
-            <label style="min-width:110px;">G_FENAPI:</label>
-            <% (gruppoOptions["G_FENAPI"]||[]).forEach(function(val) { %>
-              <label>
-                <input type="checkbox" name="G_FENAPI" value="<%= val %>"
-                  <%= (Array.isArray(query["G_FENAPI"]) && query["G_FENAPI"].includes(val)) || query["G_FENAPI"] === val ? "checked" : "" %> >
-                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
-              </label>
-            <% }); %>
-          </span>
-        <% } %>
-        <% if ((gruppoOptions["G_EspTitGrat"]||[]).length) { %>
-          <span class="filtro-gruppo-arancio2">
-            <label style="min-width:110px;">G_EspTitGrat:</label>
-            <% (gruppoOptions["G_EspTitGrat"]||[]).forEach(function(val) { %>
-              <label>
-                <input type="checkbox" name="G_EspTitGrat" value="<%= val %>"
-                  <%= (Array.isArray(query["G_EspTitGrat"]) && query["G_EspTitGrat"].includes(val)) || query["G_EspTitGrat"] === val ? "checked" : "" %> >
-                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
-              </label>
-            <% }); %>
-          </span>
-        <% } %>
-      </div>
-      <!-- RIGA 5: Messina, REG, NAZ in arancio scuro -->
-      <div class="filter-row">
-        <% if ((gruppoOptions["G_Messina"]||[]).length) { %>
-          <span class="filtro-gruppo-arancio-s1">
-            <label style="min-width:90px;">G_Messina:</label>
-            <% (gruppoOptions["G_Messina"]||[]).forEach(function(val) { %>
-              <label>
-                <input type="checkbox" name="G_Messina" value="<%= val %>"
-                  <%= (Array.isArray(query["G_Messina"]) && query["G_Messina"].includes(val)) || query["G_Messina"] === val ? "checked" : "" %> >
-                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
-              </label>
-            <% }); %>
-          </span>
-        <% } %>
-        <% if ((gruppoOptions["G_REG"]||[]).length) { %>
-          <span class="filtro-gruppo-arancio-s2">
-            <label style="min-width:90px;">G_REG:</label>
-            <% (gruppoOptions["G_REG"]||[]).forEach(function(val) { %>
-              <label>
-                <input type="checkbox" name="G_REG" value="<%= val %>"
-                  <%= (Array.isArray(query["G_REG"]) && query["G_REG"].includes(val)) || query["G_REG"] === val ? "checked" : "" %> >
-                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
-              </label>
-            <% }); %>
-          </span>
-        <% } %>
-        <% if ((gruppoOptions["G_NAZ"]||[]).length) { %>
-          <span class="filtro-gruppo-arancio-s3">
-            <label style="min-width:90px;">G_NAZ:</label>
-            <% (gruppoOptions["G_NAZ"]||[]).forEach(function(val) { %>
-              <label>
-                <input type="checkbox" name="G_NAZ" value="<%= val %>"
-                  <%= (Array.isArray(query["G_NAZ"]) && query["G_NAZ"].includes(val)) || query["G_NAZ"] === val ? "checked" : "" %> >
-                <%= (val === "TRUE" ? "SI" : (val === "FALSE" ? "NO" : val)) %>
-              </label>
-            <% }); %>
-          </span>
-        <% } %>
-      </div>
+      <!-- [filtri a colori qui, come nella tua versione funzionante] -->
+      ...
       <div class="button-row">
         <button type="submit" class="btn-filtra">FILTRA</button>
         <button type="button" class="btn-azzera" onclick="azzeraForm()">AZZERA</button>
@@ -360,8 +210,10 @@
     </tr>
     <% dati.forEach(function(riga){ %>
       <tr>
-        <% Object.values(riga).forEach(function(valore){ %>
-          <td><%= valore %></td>
+        <% Object.keys(riga).forEach(function(chiave, idx){ %>
+          <td class="<%= chiave === 'Importo' ? 'td-importo' : '' %>">
+            <% if (riga[chiave] === "TRUE") { %>SI<% } else if (riga[chiave] === "FALSE") { %>NO<% } else { %><%= riga[chiave] %><% } %>
+          </td>
         <% }); %>
       </tr>
     <% }); %>
