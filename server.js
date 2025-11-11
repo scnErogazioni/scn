@@ -1,5 +1,6 @@
 const express = require('express');
 const xlsx = require('xlsx');
+const fs = require('fs');
 const app = express();
 const port = 3000;
 
@@ -8,11 +9,28 @@ app.set('views', __dirname + '/views');
 
 let erogazioniSoggettiGruppi = [];
 
+const VISITE_FILE = 'visite.json';
+// Carica il contatore da file al boot
+function caricaVisite() {
+  try {
+    const data = fs.readFileSync(VISITE_FILE, 'utf8');
+    return JSON.parse(data).totale || 0;
+  } catch(e) {
+    return 0;
+  }
+}
+// Salva il contatore nel file
+function salvaVisite(val) {
+  fs.writeFileSync(VISITE_FILE, JSON.stringify({ totale: val }));
+}
+let visitaCounter = caricaVisite();
+
 function readXLSX(filename) {
   const workbook = xlsx.readFile(filename);
   const sheetName = workbook.SheetNames[0];
   return xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
 }
+
 function mapGroupBool(val) {
   if (val == null) return null;
   return String(val).trim().toUpperCase();
@@ -28,7 +46,7 @@ function formattaData(data) {
     return `${String(data.getDate()).padStart(2, '0')}-${String(data.getMonth() + 1).padStart(2, '0')}-${data.getFullYear()}`;
   }
   data = String(data);
-  let parts = data.split(/[-\/]/);
+  let parts = data.split(/[-\\/]/);
   if (parts.length === 3) {
     let [a, b, c] = parts;
     if (a.length === 4) return `${c.padStart(2, '0')}-${b.padStart(2, '0')}-${a}`;
@@ -38,7 +56,7 @@ function formattaData(data) {
 }
 function estraiAnno(data) {
   if (!data) return null;
-  let p = String(data).split(/[-\/]/);
+  let p = String(data).split(/[-\\/]/);
   if (p.length === 3) {
     if (p[2].length === 4) return parseInt(p[2]);
     if (p[0].length === 4) return parseInt(p[0]);
@@ -69,14 +87,13 @@ function calcSommaImporti(arr) {
 }
 function parseDataForSort(str) {
   if (!str) return 0;
-  let p = String(str).split(/[-\/]/);
+  let p = String(str).split(/[-\\/]/);
   if (p.length === 3) {
     if (p[0].length === 4) return new Date(p[0], p[1] - 1, p[2]).getTime();
     if (p[2].length === 4) return new Date(p[2], p[1] - 1, p[0]).getTime();
   }
   return Date.parse(str);
 }
-
 function initData() {
   erogazioniSoggettiGruppi = readXLSX('SV_SCN_EROGAZIONI_SOGGETTI_GRUPPI_Importi.xlsx');
 }
@@ -88,7 +105,6 @@ app.get('/tabella/erogazioni_soggetti_gruppi', (req, res) => {
     "G_Aziende", "G_FENAPI", "G_Politici", "G_Taormina",
     "G_Messina", "G_REG", "G_NAZ", "G_EspTitGrat"
   ];
-
   let dati = erogazioniSoggettiGruppi.map(riga => ({
     Anno: riga.Anno,
     Soggetto: riga.Soggetto,
@@ -111,7 +127,6 @@ app.get('/tabella/erogazioni_soggetti_gruppi', (req, res) => {
   let annoEndDefault = anniLista.length ? anniLista[anniLista.length - 1] : "";
   let soggettiLista = soggettiDaArray(dati);
   let partitiLista = uniqueColValues(dati, "Partito");
-
   let gruppoOptions = {};
   gruppi.forEach(g => {
     gruppoOptions[g] = uniqueColValues(dati, g);
@@ -119,7 +134,6 @@ app.get('/tabella/erogazioni_soggetti_gruppi', (req, res) => {
 
   const annoStart = req.query.annoStart ? parseInt(req.query.annoStart) : annoStartDefault;
   const annoEnd = req.query.annoEnd ? parseInt(req.query.annoEnd) : annoEndDefault;
-
   let datiFiltrati = dati.filter(riga => {
     let anno = estraiAnno(riga.DataErogazione);
     let checkAnno = (!annoStart || !annoEnd || !anno) ? true : (anno >= annoStart && anno <= annoEnd);
@@ -135,12 +149,10 @@ app.get('/tabella/erogazioni_soggetti_gruppi', (req, res) => {
     });
     return checkAnno && checkSogg && checkPartito && checkGruppi;
   });
-
   if (req.query.soggetto_parziale && req.query.soggetto_parziale.trim() !== "") {
     let part = req.query.soggetto_parziale.trim().toLowerCase();
     datiFiltrati = datiFiltrati.filter(r => r.Soggetto && r.Soggetto.toLowerCase().includes(part));
   }
-
   const sortField = req.query.sortField || null;
   const sortDir = req.query.sortDir || 'asc';
   if (sortField) {
@@ -157,8 +169,10 @@ app.get('/tabella/erogazioni_soggetti_gruppi', (req, res) => {
       return sortDir === 'asc' ? cmp : -cmp;
     });
   }
-
   const sommaImporti = calcSommaImporti(datiFiltrati);
+
+  visitaCounter++;
+  salvaVisite(visitaCounter); // Persistente
 
   res.render('tabella', {
     dati: datiFiltrati,
@@ -174,7 +188,8 @@ app.get('/tabella/erogazioni_soggetti_gruppi', (req, res) => {
     sommaImporti,
     sortField,
     sortDir,
-    filterOptions: {}
+    filterOptions: {},
+    visite: visitaCounter // PASSA QUI
   });
 });
 
